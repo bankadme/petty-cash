@@ -25,13 +25,13 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)!imp
 .label{font-size:13px;color:var(--dm);margin-bottom:4px;font-weight:600}
 .sep{width:2px;height:20px;background:var(--bdr);margin:0 2px;flex-shrink:0}
 .header{padding:8px 20px;border-bottom:2px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;background:#fff;flex-shrink:0;gap:8px}
-.main{flex:1;display:flex;overflow:hidden;position:relative}
-.left-panel{width:370px;min-width:370px;border-right:2px solid var(--bdr);background:#fff;overflow-y:auto;transition:margin-left .3s ease,opacity .25s ease;z-index:10}
+.main{flex:1;display:flex;overflow:hidden;min-height:0}
+.left-panel{width:370px;min-width:370px;border-right:2px solid var(--bdr);background:#fff;overflow-y:auto;transition:margin-left .3s ease,opacity .25s ease;z-index:10;display:flex;flex-direction:column;min-height:0}
 .left-panel.closed{margin-left:-370px;opacity:0;pointer-events:none}
-.left-inner{padding:14px 16px}
-.toggle-panel-btn{position:absolute;top:10px;z-index:20;background:var(--acc);color:#fff;border:none;border-radius:0 10px 10px 0;padding:8px 10px 8px 6px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:2px 2px 8px rgba(0,0,0,.08);transition:left .3s ease;left:0}
-.toggle-panel-btn.open{left:370px}
-.right-panel{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.left-top{padding:8px 16px;border-bottom:1px solid var(--bdr);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;background:#faf9f7}
+.left-inner{padding:14px 16px;flex:1;overflow-y:auto;min-height:0}
+.toggle-panel-btn{background:var(--acc);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer}
+.right-panel{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
 .bal-row{padding:10px 18px;display:flex;gap:8px;flex-shrink:0;border-bottom:2px solid var(--bdr);background:#faf9f7}
 .bal-card{flex:1;background:#fff;border-radius:12px;padding:10px 12px;border:2px solid var(--bdr);min-width:0}
 .bal-card.big{flex:1.5;padding:12px 14px;background:linear-gradient(135deg,#eef4ff,#fff);border-color:var(--accB)}
@@ -41,7 +41,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)!imp
 .alert-bar{padding:10px 20px;font-size:14px;font-weight:700;flex-shrink:0;display:flex;gap:16px;align-items:center}
 .alert-bar.warn{background:#fef2f2;color:#991b1b;border-bottom:2px solid var(--rdB)}
 .filters{padding:8px 18px;display:flex;gap:5px;align-items:center;flex-wrap:wrap;flex-shrink:0;background:#faf9f7;border-bottom:1px solid var(--bdr)}
-.table-wrap{flex:1;overflow:auto;padding:0 18px 18px;background:var(--bg)}
+.table-wrap{flex:1;overflow:auto;padding:0 18px 18px;background:var(--bg);min-height:0}
 table{width:100%;border-collapse:collapse;font-size:14px}
 thead th{padding:8px 8px;text-align:left;color:var(--dm);font-weight:700;font-size:12px;border-bottom:2px solid var(--bdr);white-space:nowrap;background:#fff;position:sticky;top:0;z-index:1}
 tbody tr{border-bottom:1px solid var(--bdr);cursor:pointer;transition:background .1s;background:#fff}
@@ -85,8 +85,8 @@ tbody td{padding:7px 8px}
   .tab-bar{margin-right:4px;flex-shrink:0}
   .btn-sm{flex-shrink:0}
   .main{flex-direction:column;overflow:auto}
-  .toggle-panel-btn{position:relative!important;left:0!important;width:100%;border-radius:0!important;text-align:center;padding:12px;font-size:15px;margin:0;order:-1}
-  .toggle-panel-btn.open{left:0!important}
+  .toggle-panel-btn{font-size:14px;padding:8px 16px;width:auto}
+  .left-top{padding:8px 12px}
   .left-panel{width:100%!important;min-width:0!important;border-right:none!important;border-bottom:2px solid var(--bdr);transition:none;order:0}
   .left-panel.closed{margin-left:0!important;max-height:0;overflow:hidden;opacity:0;padding:0;border:none}
   .left-panel:not(.closed){max-height:none;opacity:1}
@@ -290,6 +290,7 @@ function render(){
       </div>
       <button class="btn-sm" onclick="openPasteModal()">📋 วาง Excel</button>
       <button class="btn-sm" style="border-color:var(--amB);color:var(--am)" onclick="openSalaryModal()">💵 เงินเดือน</button>
+      <button class="btn-sm" style="border-color:var(--accB);color:var(--acc)" onclick="openTransferModal()">🔄 ถอน/โอนย้าย</button>
       <button class="btn-sm" onclick="exportExcel()">📥 ส่งออก</button>
       <button class="btn-sm" onclick="window.print()">🖨️</button>
       <button class="btn-sm" onclick="openSettings()">⚙️</button>
@@ -299,12 +300,15 @@ function render(){
 
   ${S.page==='main'?`
   <div class="main">
-    <button class="toggle-panel-btn ${S.panelOpen?'open':''}" onclick="S.panelOpen=!S.panelOpen;render()">${S.panelOpen?'◀ ซ่อนฟอร์ม':'➕ เพิ่มรายการ ▶'}</button>
-    <div class="left-panel ${S.panelOpen?'':'closed'}"><div class="left-inner">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <span style="font-size:16px;font-weight:800">${S.editId?'✏️ แก้ไขรายการ':'➕ เพิ่มรายการ'}</span>
-        ${S.editId?`<button onclick="resetForm();render()" style="background:none;border:none;color:var(--dm);font-size:13px;cursor:pointer;font-weight:600">ยกเลิก ✕</button>`:''}
+    <div class="left-panel ${S.panelOpen?'':'closed'}">
+      <div class="left-top">
+        <span style="font-size:15px;font-weight:800">${S.editId?'✏️ แก้ไขรายการ':'➕ เพิ่มรายการ'}</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${S.editId?`<button onclick="resetForm();render()" style="background:none;border:none;color:var(--dm);font-size:13px;cursor:pointer;font-weight:600">ยกเลิก ✕</button>`:''}
+          <button class="toggle-panel-btn" onclick="S.panelOpen=false;render()">◀ ซ่อน</button>
+        </div>
       </div>
+      <div class="left-inner">
       <div class="label">ประเภท</div>
       <div class="toggle-bar"><button class="toggle-btn ${S.form.type==='out'?'on-rd':''}" onclick="S.form.type='out';S.form.category='';render()">➖ รายจ่าย</button><button class="toggle-btn ${S.form.type==='in'?'on-gn':''}" onclick="S.form.type='in';S.form.category='';render()">➕ รายรับ</button></div>
       <div class="label">ช่องทาง</div>
@@ -336,6 +340,7 @@ function render(){
       ${catSum.length?`<div class="summary-card"><div style="font-size:14px;font-weight:700;margin-bottom:8px">📊 สรุปรายจ่ายเดือนนี้</div>${catSum.map(([c,a])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--bdr);font-size:13px"><span>${esc(c)}</span><span style="font-weight:700;color:var(--rd)">฿${fmt(a)}</span></div>`).join('')}<div style="display:flex;justify-content:space-between;padding:6px 0 0;font-size:14px;font-weight:800"><span>รวม</span><span style="color:var(--rd)">฿${fmt(catSum.reduce((s,c)=>s+c[1],0))}</span></div></div>`:''}
     </div></div>
     <div class="right-panel">
+      ${!S.panelOpen?`<div style="padding:8px 18px;flex-shrink:0;border-bottom:1px solid var(--bdr);background:#faf9f7"><button class="toggle-panel-btn" onclick="S.panelOpen=true;render()">➕ เพิ่มรายการ ▶</button></div>`:''}
       <div class="bal-row">
         <div class="bal-card big"><div class="bal-label">💰 ยอดคงเหลือรวม</div><div class="bal-val" style="color:${bc(bal.total)||'var(--acc)'}">฿${fmt(Math.abs(bal.total))}</div></div>
         <div class="bal-card"><div class="bal-label">💵 เงินสด</div><div class="bal-val" style="color:${bc(bal.cash)||'var(--gn)'}">฿${fmt(Math.abs(bal.cash))}</div></div>
@@ -446,6 +451,52 @@ let salaryResults=null;
 function openSalaryModal(){salaryResults=null;const m=document.createElement('div');m.className='overlay';m.id='salary-modal';m.innerHTML=`<div class="modal" style="max-width:840px" onclick="event.stopPropagation()"><div style="font-size:18px;font-weight:800;margin-bottom:4px">💵 นำเข้าเงินเดือน</div><div style="font-size:13px;color:var(--dm);margin-bottom:14px;line-height:1.7">"ยังไม่มี" = เงินสด, มีบัญชี = โอน</div><div style="display:flex;gap:12px;margin-bottom:14px"><div style="flex:1"><div class="label">📅 วันที่จ่าย</div><input class="inp" type="date" id="sal-date" value="${today()}"></div><div style="flex:1"><div class="label">ช่องทางเริ่มต้น</div><select class="inp" id="sal-ch"><option value="cash">💵 เงินสด</option><option value="transfer">🏦 โอน</option></select></div></div><textarea class="inp" id="sal-area" rows="7" placeholder="Ctrl+V วางที่นี่..." style="resize:vertical;font-family:monospace;font-size:12px;line-height:1.6;white-space:pre"></textarea><div style="margin-top:10px"><button class="btn" style="background:var(--am);color:#fff" onclick="previewSal()">🔍 ตรวจสอบ</button></div><div id="sal-preview"></div></div>`;m.onclick=()=>m.remove();document.body.appendChild(m);}
 function previewSal(){const t=document.getElementById('sal-area')?.value,d=document.getElementById('sal-date')?.value||today(),ch=document.getElementById('sal-ch')?.value||'cash';if(!t?.trim())return;const{results:R,errors:E}=parseSalaryPaste(t,d,ch);salaryResults=R;const el=document.getElementById('sal-preview');if(!el)return;let h='';if(E.length)h+=`<div style="background:var(--rdS);border:2px solid var(--rdB);border-radius:10px;padding:12px;margin-top:12px">${E.map(e=>`<div style="font-size:13px">${esc(e)}</div>`).join('')}</div>`;if(R.length){const tot=R.reduce((s,r)=>s+r.amount,0),cc=R.filter(r=>r.channel==='cash').length,tc=R.filter(r=>r.channel==='transfer').length;h+=`<div style="margin-top:12px;display:flex;gap:14px;flex-wrap:wrap;align-items:center"><span style="font-size:14px;font-weight:700;color:var(--gn)">✅ ${R.length} คน</span><span style="font-size:13px;color:var(--dm)">💵${cc} 🏦${tc}</span><span style="font-size:15px;font-weight:800;color:var(--rd);margin-left:auto">รวม ฿${fmt(tot)}</span></div><div style="max-height:260px;overflow:auto;border-radius:10px;border:2px solid var(--bdr);margin-top:8px"><table><thead><tr><th>#</th><th>ชื่อ</th><th>ช่องทาง</th><th style="text-align:right">จำนวน</th><th>หมายเหตุ</th></tr></thead><tbody>${R.map((r,i)=>`<tr style="border-bottom:1px solid var(--bdr);background:#fff"><td style="padding:6px 8px;color:var(--dm)">${i+1}</td><td style="padding:6px 8px">${esc(r.name)}</td><td style="padding:6px 8px"><span class="badge" style="background:${r.channel==='cash'?'var(--gnS)':'var(--accS)'};color:${r.channel==='cash'?'var(--gn)':'var(--acc)'}">${r.channel==='cash'?'เงินสด':'โอน'}</span></td><td style="padding:6px 8px;text-align:right;font-weight:700">${fmt(r.amount)}</td><td style="padding:6px 8px;font-size:12px;color:var(--dm)">${esc(r.note)}</td></tr>`).join('')}</tbody></table></div><div style="margin-top:10px"><button class="btn" style="background:var(--gn);color:#fff" onclick="doSalImport()">📥 นำเข้า ${R.length} คน — ฿${fmt(tot)}</button></div>`;}el.innerHTML=h;}
 async function doSalImport(){if(!salaryResults?.length)return;await importPaste(salaryResults);document.getElementById('salary-modal')?.remove();}
+
+// ── Transfer/Withdraw ────────────────────────────────────────────
+function openTransferModal(){
+  const m=document.createElement('div');m.className='overlay';m.id='transfer-modal';
+  m.innerHTML=`<div class="modal" style="max-width:460px" onclick="event.stopPropagation()">
+    <div style="font-size:18px;font-weight:800;margin-bottom:16px">🔄 ถอน/โอนย้ายเงิน</div>
+    <div class="label">ทิศทาง</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button id="tf-dir-b2c" class="chan-btn" style="border-color:var(--acc);background:var(--accS);color:var(--tx)" onclick="setTfDir('b2c')">🏦 บัญชี → 💵 เงินสด</button>
+      <button id="tf-dir-c2b" class="chan-btn" onclick="setTfDir('c2b')">💵 เงินสด → 🏦 บัญชี</button>
+    </div>
+    <div class="label">📅 วันที่</div>
+    <input class="inp" type="date" id="tf-date" value="${today()}" style="margin-bottom:14px">
+    <div class="label">จำนวนเงิน (บาท)</div>
+    <input class="inp" type="number" id="tf-amount" placeholder="0.00" style="font-size:24px;font-weight:800;text-align:center;padding:14px;margin-bottom:14px;color:var(--acc)">
+    <div class="label">หมายเหตุ</div>
+    <input class="inp" type="text" id="tf-note" placeholder="เช่น ถอนเงินเข้าออฟฟิศ..." style="margin-bottom:18px">
+    <button class="btn" style="background:var(--acc);color:#fff;font-size:16px" onclick="doTransfer()">✅ บันทึกการโอนย้าย</button>
+  </div>`;
+  m.onclick=()=>m.remove();document.body.appendChild(m);
+}
+let tfDir='b2c';
+function setTfDir(d){
+  tfDir=d;
+  const b2c=document.getElementById('tf-dir-b2c'),c2b=document.getElementById('tf-dir-c2b');
+  if(d==='b2c'){b2c.style.borderColor='var(--acc)';b2c.style.background='var(--accS)';b2c.style.color='var(--tx)';c2b.style.borderColor='var(--bdr)';c2b.style.background='#fff';c2b.style.color='var(--dm)';}
+  else{c2b.style.borderColor='var(--acc)';c2b.style.background='var(--accS)';c2b.style.color='var(--tx)';b2c.style.borderColor='var(--bdr)';b2c.style.background='#fff';b2c.style.color='var(--dm)';}
+}
+async function doTransfer(){
+  const amt=parseFloat(document.getElementById('tf-amount')?.value);
+  if(!amt||amt<=0){fire('⚠️ ระบุจำนวนเงิน');return;}
+  const date=document.getElementById('tf-date')?.value||today();
+  const note=document.getElementById('tf-note')?.value?.trim()||'';
+  const ts=Date.now();
+  if(tfDir==='b2c'){
+    // Bank → Cash: เงินออกจากบัญชี + เงินสดเข้า
+    await fbPush('transactions',{ts:ts,type:'out',channel:'transfer',date,amount:amt,category:'ถอน/โอนย้าย',name:'ถอนเงินจากบัญชี → เงินสด',note,user:S.user});
+    await fbPush('transactions',{ts:ts+1,type:'in',channel:'cash',date,amount:amt,category:'ถอน/โอนย้าย',name:'รับเงินสดจากบัญชี',note,user:S.user});
+  } else {
+    // Cash → Bank: เงินสดออก + เข้าบัญชี
+    await fbPush('transactions',{ts:ts,type:'out',channel:'cash',date,amount:amt,category:'ถอน/โอนย้าย',name:'นำเงินสดฝากเข้าบัญชี',note,user:S.user});
+    await fbPush('transactions',{ts:ts+1,type:'in',channel:'transfer',date,amount:amt,category:'ถอน/โอนย้าย',name:'รับเงินเข้าบัญชีจากเงินสด',note,user:S.user});
+  }
+  document.getElementById('transfer-modal')?.remove();
+  fire('✅ บันทึกการโอนย้ายแล้ว');render();
+}
 
 render();
 </script>
