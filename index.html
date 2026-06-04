@@ -10,6 +10,7 @@
 :root{--bg:#f5f3ef;--sf:#fff;--bdr:#e0dcd5;--tx:#2d2a26;--dm:#7a756d;--acc:#2563eb;--accS:rgba(37,99,235,.08);--accB:rgba(37,99,235,.2);--gn:#16a34a;--gnS:rgba(22,163,74,.07);--gnB:rgba(22,163,74,.25);--rd:#dc2626;--rdS:rgba(220,38,38,.07);--rdB:rgba(220,38,38,.25);--am:#d97706;--amS:rgba(217,119,6,.07);--amB:rgba(217,119,6,.25)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--tx);height:100vh;overflow:hidden;display:flex;flex-direction:column;font-size:16px}
+#app{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0;height:100%}
 input,select,textarea,button{font-family:'Sarabun',sans-serif;font-size:15px}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)!important;box-shadow:0 0 0 3px var(--accS)}
 ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:4px}
@@ -79,19 +80,20 @@ tbody td{padding:7px 8px}
 /* ── Mobile/Tablet responsive ── */
 @media(max-width:1200px){
   body{height:auto;overflow:auto}
+  #app{height:auto;overflow:visible}
   .header{flex-wrap:wrap;padding:8px 12px;gap:6px}
   .header>div:first-child{width:100%}
   .header>div:last-child{width:100%;justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:4px}
   .tab-bar{margin-right:4px;flex-shrink:0}
   .btn-sm{flex-shrink:0}
-  .main{flex-direction:column;overflow:auto}
+  .main{flex-direction:column;overflow:visible;min-height:auto}
   .toggle-panel-btn{font-size:14px;padding:8px 16px;width:auto}
   .left-top{padding:8px 12px}
-  .left-panel{width:100%!important;min-width:0!important;border-right:none!important;border-bottom:2px solid var(--bdr);transition:none;order:0}
+  .left-panel{width:100%!important;min-width:0!important;border-right:none!important;border-bottom:2px solid var(--bdr);transition:none;order:0;overflow:visible;min-height:auto}
   .left-panel.closed{margin-left:0!important;max-height:0;overflow:hidden;opacity:0;padding:0;border:none}
   .left-panel:not(.closed){max-height:none;opacity:1}
-  .left-inner{padding:12px 14px}
-  .right-panel{overflow:auto;min-height:0;order:1}
+  .left-inner{padding:12px 14px;overflow-y:visible;flex:none}
+  .right-panel{overflow:visible;min-height:auto;order:1}
   .bal-row{flex-wrap:wrap;padding:10px 12px;gap:6px}
   .bal-card{flex:1 1 45%;min-width:120px}
   .bal-card.big{flex:1 1 100%}
@@ -103,7 +105,7 @@ tbody td{padding:7px 8px}
   .filters input[type="date"]{width:110px!important;font-size:11px!important;padding:4px 4px!important}
   .filters select{width:100px!important;font-size:11px!important;padding:4px 4px!important}
   .filters input[type="text"]{width:100%!important;font-size:12px!important}
-  .table-wrap{padding:0 8px 12px;overflow-x:auto}
+  .table-wrap{padding:0 8px 12px;overflow-x:auto;overflow-y:visible;min-height:auto;flex:none}
   table{font-size:12px;min-width:600px}
   thead th{padding:6px 6px;font-size:11px}
   tbody td{padding:6px 6px;font-size:12px}
