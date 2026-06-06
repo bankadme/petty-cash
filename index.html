@@ -189,6 +189,11 @@ function getUsedCats(){return[...new Set(S.txs.map(t=>t.category))].sort();}
 async function saveTx(){
   const a=parseFloat(S.form.amount);if(!a||a<=0){fire('⚠️ ระบุจำนวนเงิน');return;}
   if(!S.form.category){fire('⚠️ เลือกหมวดหมู่');return;}
+  // Check duplicate (same name + amount + date)
+  if(!S.editId&&S.form.name.trim()){
+    const dup=S.txs.find(t=>t.name===S.form.name.trim()&&t.amount===a&&t.date===S.form.date);
+    if(dup&&!confirm(`⚠️ มีรายการซ้ำ:\n"${dup.name}" จำนวน ฿${fmt(dup.amount)} วันที่ ${thaiDate(dup.date)}\n\nต้องการบันทึกซ้ำหรือไม่?`))return;
+  }
   const tx={ts:Date.now(),type:S.form.type,channel:S.form.channel,date:S.form.date,amount:a,category:S.form.category,name:S.form.name.trim(),note:S.form.note.trim(),user:S.user};
   if(S.editId){await fbUpdate(`transactions/${S.editId}`,tx);fire('✅ แก้ไขแล้ว');}
   else{await fbPush('transactions',tx);fire('✅ บันทึกแล้ว');}
@@ -291,6 +296,7 @@ function render(){
     <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
       <div class="tab-bar">
         <button class="tab-btn ${S.page==='main'?'on':''}" onclick="S.page='main';render()">📊 บันทึก</button>
+        <button class="tab-btn ${S.page==='chart'?'on':''}" onclick="S.page='chart';render()">📈 สรุป</button>
         <button class="tab-btn ${S.page==='manage'?'on':''}" onclick="S.page='manage';render()">⚙️ จัดการ</button>
       </div>
       <button class="btn-sm" onclick="openPasteModal()">📋 วาง Excel</button>
@@ -374,10 +380,81 @@ function render(){
           <td style="font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(tx.name||'—')}</td>
           <td style="text-align:right;font-weight:800;font-size:15px;color:${tx.type==='in'?'var(--gn)':'var(--rd)'}">${tx.type==='in'?'+':'-'}฿${fmt(tx.amount)}</td>
           <td style="color:var(--dm);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${esc(tx.note||'—')}</td>
-          <td class="no-print" style="text-align:center"><button onclick="event.stopPropagation();confirmDeleteTx('${tx._key}')" style="background:none;border:none;color:var(--dm);cursor:pointer;font-size:14px;padding:4px">🗑</button></td>
+          <td class="no-print" style="text-align:center;white-space:nowrap"><button onclick="event.stopPropagation();startEdit(S.txs.find(t=>t._key==='${tx._key}'))" style="background:none;border:none;color:var(--acc);cursor:pointer;font-size:14px;padding:4px" title="แก้ไข">✏️</button><button onclick="event.stopPropagation();confirmDeleteTx('${tx._key}')" style="background:none;border:none;color:var(--dm);cursor:pointer;font-size:14px;padding:4px" title="ลบ">🗑</button></td>
         </tr>`).join('')}</tbody></table>
       </div></div>
     </div>
+  </div>`:
+  S.page==='chart'?`
+  <!-- CHART PAGE -->
+  <div class="manage-page" style="flex-direction:column;max-width:900px;margin:0 auto">
+    <div style="font-size:20px;font-weight:800;margin-bottom:8px">📈 สรุปเปรียบเทียบรายเดือน</div>
+    ${(()=>{
+      const ch=getChartData();
+      const thisLabel=thaiMonth(ch.thisYM);
+      const prevLabel=thaiMonth(ch.prevYM);
+      const diff=ch.thisTotal-ch.prevTotal;
+      const diffPct=ch.prevTotal?Math.round((diff/ch.prevTotal)*100):0;
+      return `
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px;background:#fff;border:2px solid var(--bdr);border-radius:12px;padding:14px">
+          <div style="font-size:12px;color:var(--dm)">${thisLabel}</div>
+          <div style="font-size:12px;color:var(--dm);margin-top:2px">รายรับ</div>
+          <div style="font-size:20px;font-weight:800;color:var(--gn)">+฿${fmt(ch.thisInc)}</div>
+          <div style="font-size:12px;color:var(--dm);margin-top:4px">รายจ่าย</div>
+          <div style="font-size:20px;font-weight:800;color:var(--rd)">-฿${fmt(ch.thisTotal)}</div>
+        </div>
+        <div style="flex:1;min-width:200px;background:#fff;border:2px solid var(--bdr);border-radius:12px;padding:14px">
+          <div style="font-size:12px;color:var(--dm)">${prevLabel}</div>
+          <div style="font-size:12px;color:var(--dm);margin-top:2px">รายรับ</div>
+          <div style="font-size:20px;font-weight:800;color:var(--gn)">+฿${fmt(ch.prevInc)}</div>
+          <div style="font-size:12px;color:var(--dm);margin-top:4px">รายจ่าย</div>
+          <div style="font-size:20px;font-weight:800;color:var(--rd)">-฿${fmt(ch.prevTotal)}</div>
+        </div>
+        <div style="flex:1;min-width:200px;background:${diff>0?'var(--rdS)':'var(--gnS)'};border:2px solid ${diff>0?'var(--rdB)':'var(--gnB)'};border-radius:12px;padding:14px">
+          <div style="font-size:12px;color:var(--dm)">เทียบเดือนก่อน</div>
+          <div style="font-size:20px;font-weight:800;color:${diff>0?'var(--rd)':'var(--gn)'}">${diff>0?'▲ จ่ายเพิ่ม':'▼ จ่ายลด'} ฿${fmt(Math.abs(diff))}</div>
+          <div style="font-size:13px;color:var(--dm);margin-top:2px">${diffPct>0?'+':''}${diffPct}%</div>
+        </div>
+      </div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:12px">รายจ่ายแยกตามหมวดหมู่</div>
+      <div style="background:#fff;border:2px solid var(--bdr);border-radius:12px;overflow:hidden">
+        <div style="display:flex;padding:10px 14px;border-bottom:2px solid var(--bdr);background:#faf9f7">
+          <div style="flex:2;font-size:12px;font-weight:700;color:var(--dm)">หมวดหมู่</div>
+          <div style="flex:3;font-size:12px;font-weight:700;color:var(--dm)">เปรียบเทียบ</div>
+          <div style="width:100px;text-align:right;font-size:12px;font-weight:700;color:var(--dm)">${thisLabel}</div>
+          <div style="width:100px;text-align:right;font-size:12px;font-weight:700;color:var(--dm)">${prevLabel}</div>
+        </div>
+        ${ch.cats.length===0?'<div style="padding:32px;text-align:center;color:var(--dm)">ยังไม่มีข้อมูล</div>':
+        ch.cats.map(c=>{
+          const tw=ch.maxAmt?Math.round(c.thisAmt/ch.maxAmt*100):0;
+          const pw=ch.maxAmt?Math.round(c.prevAmt/ch.maxAmt*100):0;
+          return `<div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--bdr)">
+            <div style="flex:2;font-size:14px;font-weight:600">${esc(c.cat)}</div>
+            <div style="flex:3;display:flex;flex-direction:column;gap:4px;padding-right:12px">
+              <div style="display:flex;align-items:center;gap:6px">
+                <div style="height:14px;width:${tw}%;background:var(--rd);border-radius:4px;min-width:${tw?'4px':'0'};transition:width .3s"></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <div style="height:14px;width:${pw}%;background:var(--bdr);border-radius:4px;min-width:${pw?'4px':'0'};transition:width .3s"></div>
+              </div>
+            </div>
+            <div style="width:100px;text-align:right;font-size:14px;font-weight:700;color:var(--rd)">฿${fmt(c.thisAmt)}</div>
+            <div style="width:100px;text-align:right;font-size:13px;color:var(--dm)">฿${fmt(c.prevAmt)}</div>
+          </div>`;
+        }).join('')}
+        <div style="display:flex;align-items:center;padding:12px 14px;background:#faf9f7;font-weight:800">
+          <div style="flex:2;font-size:14px">รวมทั้งหมด</div>
+          <div style="flex:3"></div>
+          <div style="width:100px;text-align:right;font-size:15px;color:var(--rd)">฿${fmt(ch.thisTotal)}</div>
+          <div style="width:100px;text-align:right;font-size:14px;color:var(--dm)">฿${fmt(ch.prevTotal)}</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;font-size:12px;color:var(--dm)">
+        <span style="display:inline-block;width:14px;height:14px;background:var(--rd);border-radius:3px"></span> ${thisLabel} (เดือนนี้)
+        <span style="display:inline-block;width:14px;height:14px;background:var(--bdr);border-radius:3px;margin-left:12px"></span> ${prevLabel} (เดือนก่อน)
+      </div>`;
+    })()}
   </div>`:
   // ── MANAGE PAGE ──
   `<div class="manage-page">
@@ -429,13 +506,22 @@ function renderCatManager(type,title,arr){
 // ── Modals ────────────────────────────────────────────────────────
 function confirmDeleteTx(key){const m=document.createElement('div');m.className='overlay';m.innerHTML=`<div class="modal" style="max-width:400px" onclick="event.stopPropagation()"><div style="font-size:17px;font-weight:700;margin-bottom:6px">ยืนยันลบรายการ?</div><div style="font-size:14px;color:var(--dm);margin-bottom:20px">ลบแล้วไม่สามารถกู้คืนได้</div><div style="display:flex;gap:10px"><button class="btn" style="background:var(--bg);color:var(--tx);border:2px solid var(--bdr)" onclick="this.closest('.overlay').remove()">ยกเลิก</button><button class="btn" style="background:var(--rd);color:#fff" onclick="this.closest('.overlay').remove();deleteTx('${key}')">🗑️ ลบ</button></div></div>`;m.onclick=()=>m.remove();document.body.appendChild(m);}
 
-function openSettings(){const m=document.createElement('div');m.className='overlay';m.id='settings-modal';m.innerHTML=`<div class="modal" style="max-width:480px" onclick="event.stopPropagation()">
+function openSettings(){const m=document.createElement('div');m.className='overlay';m.id='settings-modal';m.innerHTML=`<div class="modal" style="max-width:500px" onclick="event.stopPropagation()">
   <div style="font-size:18px;font-weight:800;margin-bottom:18px">⚙️ ตั้งค่า</div>
   <div style="background:#faf9f7;border-radius:12px;padding:16px;margin-bottom:14px;border:2px solid var(--bdr)">
     <div style="font-size:14px;font-weight:700;margin-bottom:10px">💰 ยอดเงินตั้งต้น</div>
     <div class="label">💵 เงินสด (บาท)</div><input class="inp" type="number" id="set-cash" value="${S.initBal.cash||''}" placeholder="0" style="margin-bottom:8px;font-size:16px">
     <div class="label">🏦 บัญชีธนาคาร (บาท)</div><input class="inp" type="number" id="set-bank" value="${S.initBal.bank||''}" placeholder="0" style="font-size:16px">
     <div style="margin-top:12px"><button class="btn" style="background:var(--acc);color:#fff" onclick="saveSettingsClose()">💾 บันทึก</button></div>
+  </div>
+  <div style="background:#f0f7ff;border-radius:12px;padding:16px;margin-bottom:14px;border:2px solid var(--accB)">
+    <div style="font-size:14px;font-weight:700;color:var(--acc);margin-bottom:8px">💾 สำรองข้อมูล</div>
+    <div style="font-size:12px;color:var(--dm);margin-bottom:10px">Export ข้อมูลทั้งหมดเป็นไฟล์ JSON เก็บไว้ หรือ Import กลับมาได้</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="background:var(--acc);color:#fff" onclick="backupData()">📥 สำรองข้อมูล</button>
+      <button class="btn" style="background:#fff;color:var(--acc);border:2px solid var(--accB)" onclick="document.getElementById('restore-file').click()">📤 กู้คืนข้อมูล</button>
+      <input type="file" id="restore-file" accept=".json" style="display:none" onchange="restoreData(this)">
+    </div>
   </div>
   <div style="background:#fef2f2;border-radius:12px;padding:16px;border:2px solid var(--rdB)">
     <div style="font-size:14px;font-weight:700;color:var(--rd);margin-bottom:6px">⚠️ ล้างข้อมูลทั้งหมด</div>
@@ -445,6 +531,45 @@ function openSettings(){const m=document.createElement('div');m.className='overl
   <div style="margin-top:14px"><button class="btn" style="background:var(--bg);color:var(--tx);border:2px solid var(--bdr)" onclick="this.closest('.overlay').remove()">ปิด</button></div>
 </div>`;m.onclick=()=>m.remove();document.body.appendChild(m);}
 async function saveSettingsClose(){S.initBal={cash:parseFloat(document.getElementById('set-cash').value)||0,bank:parseFloat(document.getElementById('set-bank').value)||0};await fbSet('initBalance',S.initBal);document.getElementById('settings-modal')?.remove();fire('✅ บันทึกแล้ว');render();}
+
+// ── Backup / Restore ─────────────────────────────────────────────
+function backupData(){
+  const data={transactions:S.txs,templates:S.templates,cats:S.cats,catsIn:S.catsIn,initBal:S.initBal,exportDate:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`NISTO_backup_${today()}.json`;a.click();
+  fire('💾 สำรองข้อมูลแล้ว');
+}
+async function restoreData(input){
+  const file=input.files[0];if(!file)return;
+  if(!confirm('⚠️ การกู้คืนจะเขียนทับข้อมูลปัจจุบันทั้งหมด ยืนยันหรือไม่?'))return;
+  try{
+    const text=await file.text();const data=JSON.parse(text);
+    if(data.transactions){const obj={};data.transactions.forEach((t,i)=>{const k=t._key||('imp'+i);obj[k]=t;delete obj[k]._key;});await fbSet('transactions',obj);}
+    if(data.templates){const obj={};data.templates.forEach((t,i)=>{const k=t._key||('tpl'+i);obj[k]=t;delete obj[k]._key;});await fbSet('templates',obj);}
+    if(data.cats)await fbSet('categories',data.cats);
+    if(data.catsIn)await fbSet('categoriesIn',data.catsIn);
+    if(data.initBal)await fbSet('initBalance',data.initBal);
+    document.getElementById('settings-modal')?.remove();
+    fire('✅ กู้คืนข้อมูลสำเร็จ — กำลังโหลดใหม่...');
+    setTimeout(()=>location.reload(),1500);
+  }catch(e){fire('❌ ไฟล์ไม่ถูกต้อง');console.error(e);}
+}
+
+// ── Chart data ───────────────────────────────────────────────────
+function getChartData(){
+  const now=new Date();const thisYM=now.toISOString().slice(0,7);
+  const prev=new Date(now.getFullYear(),now.getMonth()-1,1);const prevYM=prev.toISOString().slice(0,7);
+  const thisMap={},prevMap={};let thisTotal=0,prevTotal=0,thisInc=0,prevInc=0;
+  S.txs.forEach(t=>{
+    if(t.date?.startsWith(thisYM)){if(t.type==='out'){thisMap[t.category]=(thisMap[t.category]||0)+t.amount;thisTotal+=t.amount;}else{thisInc+=t.amount;}}
+    if(t.date?.startsWith(prevYM)){if(t.type==='out'){prevMap[t.category]=(prevMap[t.category]||0)+t.amount;prevTotal+=t.amount;}else{prevInc+=t.amount;}}
+  });
+  const allCats=[...new Set([...Object.keys(thisMap),...Object.keys(prevMap)])];
+  const cats=allCats.map(c=>({cat:c,thisAmt:thisMap[c]||0,prevAmt:prevMap[c]||0})).sort((a,b)=>b.thisAmt-a.thisAmt);
+  const maxAmt=Math.max(...cats.map(c=>Math.max(c.thisAmt,c.prevAmt)),1);
+  return{cats,thisTotal,prevTotal,thisInc,prevInc,thisYM,prevYM,maxAmt};
+}
 async function doResetAll(){if(document.getElementById('reset-code')?.value!=='1234'){fire('❌ รหัสไม่ถูกต้อง');return;}if(!confirm('ยืนยันล้างข้อมูลทั้งหมด?'))return;await Promise.all([fbDel('transactions'),fbDel('templates'),fbDel('categories'),fbDel('categoriesIn'),fbDel('initBalance')]);S.txs=[];S.templates=[];S.cats=[...DEFAULT_CATS];S.catsIn=[...DEFAULT_CATS_IN];S.initBal={cash:0,bank:0};resetForm();document.getElementById('settings-modal')?.remove();fire('🗑️ ล้างทั้งหมดแล้ว');render();}
 
 let pasteResults=null;
