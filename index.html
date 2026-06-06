@@ -13,6 +13,8 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--tx);heigh
 #app{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0;height:100%}
 input,select,textarea,button{font-family:'Sarabun',sans-serif;font-size:15px}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)!important;box-shadow:0 0 0 3px var(--accS)}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
 ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:4px}
 .inp{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--bdr);background:#fff;color:var(--tx);font-size:15px}
 .btn{padding:13px 0;border-radius:12px;border:none;font-size:16px;font-weight:700;cursor:pointer;width:100%;transition:all .15s}
@@ -206,6 +208,7 @@ function buildSuggestions(text){
 window.applySuggestion=function(i){const s=S.suggestions[i];if(!s)return;S.form.name=s.name;if(s.type)S.form.type=s.type;if(s.channel)S.form.channel=s.channel;if(s.category)S.form.category=s.category;S.showSug=false;render();setTimeout(()=>{const e=document.getElementById('amount-input');if(e)e.focus();},50);};
 function renderSuggestions(){const dd=document.getElementById('sug-dropdown');if(!dd)return;if(!S.showSug||!S.suggestions.length){dd.style.display='none';return;}dd.style.display='block';dd.innerHTML=S.suggestions.map((s,i)=>`<div class="sug-item" onmousedown="event.preventDefault();applySuggestion(${i})"><div style="flex:1"><div style="font-size:14px;font-weight:600">${esc(s.name)}</div><div style="font-size:12px;color:var(--dm);display:flex;gap:6px;margin-top:2px"><span style="color:${s.type==='in'?'var(--gn)':'var(--rd)'}">${s.type==='in'?'รับ':'จ่าย'}</span><span>·</span><span>${s.channel==='cash'?'💵เงินสด':'🏦โอน'}</span><span>·</span><span>${esc(s.category||'')}</span></div></div><span style="font-size:11px;color:var(--dm)">${s.src==='tpl'?'📌':'🕐'}</span></div>`).join('');}
 document.addEventListener('click',e=>{const w=document.getElementById('name-wrap');if(w&&!w.contains(e.target)){S.showSug=false;renderSuggestions();}});
+document.addEventListener('wheel',e=>{if(e.target.type==='number')e.preventDefault();},{passive:false});
 
 // ── Import ───────────────────────────────────────────────────────
 async function importPaste(results){for(const r of results){r.user=S.user;await fbPush('transactions',r);}fire(`✅ นำเข้า ${results.length} รายการ`);render();}
